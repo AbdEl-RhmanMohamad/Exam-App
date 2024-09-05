@@ -1,4 +1,4 @@
-# Examination App
+# Exam App
 
 This is an examination app developed as part of the graduation project in the Power BI Development track at the ITI Intensive Training Program.
 
