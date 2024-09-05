@@ -1,3 +1,25 @@
+# MIT License
+#
+# Copyright (c) 2024 AbdEl-Rhman Ashraf Mohamad
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 #Created by AbdEl-Rhman Ashraf
 #26/08/2024
 
@@ -96,7 +118,7 @@ class ExamApp:
         self.master.attributes("-fullscreen", not self.master.attributes('-fullscreen'))
 
     def set_background_image(self):
-        image_path = r"C:\Users\elbre\Desktop\desktop application (Community).png"
+        image_path = r"C:\Users\elbre\Desktop\desktop application (Community).png" # Background Image
         image = Image.open(image_path)
 
         screen_width = self.master.winfo_screenwidth()
@@ -180,8 +202,8 @@ class ExamApp:
         try:
             conn = pyodbc.connect(
                 r'DRIVER={ODBC Driver 17 for SQL Server};'
-                r'SERVER=MODARSH;'
-                r'DATABASE=PowerBIGP;'
+                r'SERVER=[Enter_Your_Server_Name];'
+                r'DATABASE=[Your_Datebase_Name];'
                 r'Trusted_Connection=yes;'
             )
             return conn
@@ -255,11 +277,11 @@ class ExamApp:
             
             cursor = conn.cursor()
             
-            # Generate the exam
+            # Generate the exam using a stored procedure GenerateExamForStudent
             cursor.execute("EXEC GenerateExamForStudent @Std_SSN=?, @CourseName=?", (ssn, course_name))
             conn.commit()  # Ensure the exam generation is committed to the database
 
-            # Get the most recent Ex_ID for the given course and student
+            # Get the most recent Ex_ID for the given course and student using stored procedure
             cursor.execute("EXEC GetMostRecentExamID @CourseName=?, @Std_SSN=?", (course_name, ssn))
             exam_id_result = cursor.fetchone()
             
@@ -416,14 +438,8 @@ class ExamApp:
             
             cursor = conn.cursor()
 
-            # Get the most recent Ex_ID for the given course
-            cursor.execute("""
-                SELECT TOP 1 e.Ex_ID 
-                FROM Exam e
-                JOIN Course c ON e.Crs_ID = c.Crs_ID
-                WHERE c.Course_Name = ?
-                ORDER BY e.Ex_ID DESC
-            """, self.current_course)
+            # Get the most recent Exam ID for the given course using a stored Procedure
+            cursor.execute("EXEC GetMostRecentExamID ?, ?", (self.current_course, int(self.current_ssn)))
             exam_id_result = cursor.fetchone()
             
             if not exam_id_result:
