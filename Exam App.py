@@ -104,7 +104,7 @@ class ExamApp:
         self.current_ssn = None
         self.current_course = None
         self.timer_running = False
-
+        self.exam_id = None
         self.set_background_image()
         self.create_widgets()
         self.setup_keyboard_navigation()
@@ -118,7 +118,7 @@ class ExamApp:
         self.master.attributes("-fullscreen", not self.master.attributes('-fullscreen'))
 
     def set_background_image(self):
-        image_path = r"C:\Users\elbre\Desktop\desktop application (Community).png" # Background Image
+        image_path = r"C:\Users\elbre\Desktop\Exam APP.png"
         image = Image.open(image_path)
 
         screen_width = self.master.winfo_screenwidth()
@@ -277,11 +277,14 @@ class ExamApp:
             
             cursor = conn.cursor()
             
-            # Generate the exam using a stored procedure GenerateExamForStudent
+            # Start database transaction
+            cursor.execute("BEGIN TRANSACTION;")
+            
+            # Generate the exam
             cursor.execute("EXEC GenerateExamForStudent @Std_SSN=?, @CourseName=?", (ssn, course_name))
             conn.commit()  # Ensure the exam generation is committed to the database
 
-            # Get the most recent Ex_ID for the given course and student using stored procedure
+            # Get the most recent Ex_ID for the given course and student
             cursor.execute("EXEC GetMostRecentExamID @CourseName=?, @Std_SSN=?", (course_name, ssn))
             exam_id_result = cursor.fetchone()
             
@@ -289,10 +292,10 @@ class ExamApp:
                 messagebox.showerror("Error", "You are not registered in this course.")
                 return
             
-            exam_id = exam_id_result[0]
+            self.exam_id = exam_id_result[0]
             
             # Get exam questions
-            cursor.execute("EXEC GetQuestionsByCourseName @Ex_ID=?", exam_id)
+            cursor.execute("EXEC GetQuestionsByCourseName @Ex_ID=?", self.exam_id)
             exam_questions = cursor.fetchall()
 
             # Process the questions to ensure uniqueness
@@ -316,8 +319,14 @@ class ExamApp:
         
             self.create_exam_interface(exam_questions, cursor)
 
+            # Commit transaction
+            cursor.execute("COMMIT;")
+            
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate exam: {str(e)}")
+            
+            # Rollback in case of error
+            cursor.execute("ROLLBACK;")
 
         finally:
             if cursor:
@@ -438,16 +447,7 @@ class ExamApp:
             
             cursor = conn.cursor()
 
-            # Get the most recent Exam ID for the given course using a stored Procedure
-            cursor.execute("EXEC GetMostRecentExamID ?, ?", (self.current_course, int(self.current_ssn)))
-            exam_id_result = cursor.fetchone()
-            
-            if not exam_id_result:
-                messagebox.showerror("Error", "Could not find the exam ID.")
-                return
-            
-            exam_id = exam_id_result[0]
-            print(f"Retrieved Exam ID: {exam_id}")  # Debug print
+            exam_id = self.exam_id
 
             for q_id, answer_var in self.answers.items():
                 answer = answer_var.get() if answer_var.get() else ""
@@ -506,6 +506,5 @@ if __name__ == "__main__":
     ## 6. click convert exe
     ## 7. wait for the process to finish
     ## 8. the exe file will be in the output folder
-    
     
     
